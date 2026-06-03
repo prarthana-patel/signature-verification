@@ -23,7 +23,6 @@ st.markdown("""
     linear-gradient(135deg, #020617, #0f172a, #111827);
     color: white;
 }
-
 .hero {
     padding: 35px;
     border-radius: 30px;
@@ -33,7 +32,6 @@ st.markdown("""
     box-shadow: 0 0 45px rgba(56, 189, 248, 0.35);
     margin-bottom: 30px;
 }
-
 .hero h1 {
     font-size: 52px;
     font-weight: 900;
@@ -41,48 +39,33 @@ st.markdown("""
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
-
 .hero p {
     color: #cbd5e1;
     font-size: 19px;
 }
-
-.glass-card {
-    background: rgba(15, 23, 42, 0.78);
-    border: 1px solid rgba(148, 163, 184, 0.25);
-    border-radius: 24px;
-    padding: 25px;
-    box-shadow: 0 0 30px rgba(14, 165, 233, 0.22);
-}
-
-.result-genuine {
-    background: rgba(34, 197, 94, 0.18);
-    border: 2px solid #22c55e;
-    color: #bbf7d0;
-}
-
-.result-forged {
-    background: rgba(234, 179, 8, 0.18);
-    border: 2px solid #eab308;
-    color: #fef3c7;
-}
-
-.result-different {
-    background: rgba(239, 68, 68, 0.18);
-    border: 2px solid #ef4444;
-    color: #fecaca;
-}
-
 .result-box {
     padding: 30px;
     border-radius: 25px;
     text-align: center;
     font-size: 32px;
     font-weight: 900;
-    box-shadow: 0 0 30px rgba(255,255,255,0.15);
     margin-top: 25px;
 }
-
+.result-genuine {
+    background: rgba(34, 197, 94, 0.18);
+    border: 2px solid #22c55e;
+    color: #bbf7d0;
+}
+.result-forged {
+    background: rgba(234, 179, 8, 0.18);
+    border: 2px solid #eab308;
+    color: #fef3c7;
+}
+.result-different {
+    background: rgba(239, 68, 68, 0.18);
+    border: 2px solid #ef4444;
+    color: #fecaca;
+}
 .metric-box {
     background: rgba(30, 41, 59, 0.88);
     border: 1px solid rgba(56, 189, 248, 0.35);
@@ -90,9 +73,7 @@ st.markdown("""
     border-radius: 22px;
     text-align: center;
     font-size: 22px;
-    box-shadow: inset 0 0 18px rgba(56, 189, 248, 0.18);
 }
-
 .footer {
     text-align: center;
     color: #94a3b8;
@@ -102,9 +83,13 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+
 def euclidean_distance(vectors):
     x, y = vectors
-    return tf.sqrt(tf.reduce_sum(tf.square(x - y), axis=1, keepdims=True) + 1e-10)
+    return tf.sqrt(
+        tf.reduce_sum(tf.square(x - y), axis=1, keepdims=True) + 1e-10
+    )
+
 
 @st.cache_resource
 def load_signature_model():
@@ -115,15 +100,21 @@ def load_signature_model():
         safe_mode=False
     )
 
+
 model = load_signature_model()
+
 
 def preprocess_signature(path):
     img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
     img = cv2.GaussianBlur(img, (3, 3), 0)
 
-    _, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    _, img = cv2.threshold(
+        img, 0, 255,
+        cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
+    )
 
     coords = cv2.findNonZero(img)
+
     if coords is not None:
         x, y, w, h = cv2.boundingRect(coords)
         img = img[y:y+h, x:x+w]
@@ -133,6 +124,7 @@ def preprocess_signature(path):
     img = np.expand_dims(img, axis=-1)
 
     return img
+
 
 def generate_heatmap(path1, path2):
     img1 = preprocess_signature(path1).squeeze()
@@ -147,6 +139,7 @@ def generate_heatmap(path1, path2):
     heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
 
     return heatmap
+
 
 def verify_signature(path1, path2):
     img1 = np.expand_dims(preprocess_signature(path1), axis=0)
@@ -164,6 +157,7 @@ def verify_signature(path1, path2):
 
     return result, distance, similarity
 
+
 st.markdown("""
 <div class="hero">
     <h1>🕵️‍♀️ Cyber-Forensic Signature AI</h1>
@@ -171,27 +165,52 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+
+input_mode = st.radio(
+    "📥 Select Evidence Input Method",
+    ["Upload Photo", "Take Photo"],
+    horizontal=True
+)
+
 col1, col2 = st.columns(2)
 
-with col1:
-    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-    st.subheader("📄 Original Evidence")
-    original_file = st.file_uploader(
-        "Upload original/reference signature",
-        type=["png", "jpg", "jpeg"]
-    )
-    st.markdown('</div>', unsafe_allow_html=True)
+if input_mode == "Upload Photo":
 
-with col2:
-    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-    st.subheader("🔍 Questioned Evidence")
-    questioned_file = st.file_uploader(
-        "Upload questioned/test signature",
-        type=["png", "jpg", "jpeg"]
-    )
-    st.markdown('</div>', unsafe_allow_html=True)
+    with col1:
+        st.subheader("📄 Original Signature")
+        original_file = st.file_uploader(
+            "Upload Original Signature",
+            type=["png", "jpg", "jpeg"],
+            key="original_upload"
+        )
+
+    with col2:
+        st.subheader("🔍 Questioned Signature")
+        questioned_file = st.file_uploader(
+            "Upload Questioned Signature",
+            type=["png", "jpg", "jpeg"],
+            key="questioned_upload"
+        )
+
+else:
+
+    with col1:
+        st.subheader("📄 Original Signature")
+        original_file = st.camera_input(
+            "Capture Original Signature",
+            key="original_camera"
+        )
+
+    with col2:
+        st.subheader("🔍 Questioned Signature")
+        questioned_file = st.camera_input(
+            "Capture Questioned Signature",
+            key="questioned_camera"
+        )
+
 
 if original_file and questioned_file:
+
     temp1 = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
     temp1.write(original_file.read())
     temp1.close()
@@ -205,12 +224,21 @@ if original_file and questioned_file:
     img1_col, img2_col = st.columns(2)
 
     with img1_col:
-        st.image(temp1.name, caption="Original Signature", use_container_width=True)
+        st.image(
+            temp1.name,
+            caption="Original Signature",
+            use_container_width=True
+        )
 
     with img2_col:
-        st.image(temp2.name, caption="Questioned Signature", use_container_width=True)
+        st.image(
+            temp2.name,
+            caption="Questioned Signature",
+            use_container_width=True
+        )
 
     if st.button("🚀 RUN FORENSIC VERIFICATION", use_container_width=True):
+
         result, distance, similarity = verify_signature(temp1.name, temp2.name)
 
         if result == "GENUINE SIGNATURE":
@@ -256,17 +284,31 @@ if original_file and questioned_file:
                 unsafe_allow_html=True
             )
 
-        st.markdown("## 🔥 Forensic Heatmap")
+        if result == "GENUINE SIGNATURE":
+            st.success(
+                "✅ Signatures match. No forensic heatmap is generated for genuine signatures."
+            )
 
-        heatmap = generate_heatmap(temp1.name, temp2.name)
+        else:
+            st.markdown("## 🔥 Forensic Heatmap")
 
-        st.image(
-            heatmap,
-            caption="Red/yellow regions show stronger mismatch zones",
-            use_container_width=True
-        )
+            heatmap = generate_heatmap(temp1.name, temp2.name)
 
-        st.info("This heatmap highlights suspicious visual differences between both signatures.")
+            st.image(
+                heatmap,
+                caption="Red/yellow regions show stronger mismatch zones",
+                use_container_width=True
+            )
+
+            st.info(
+                "This heatmap highlights suspicious visual differences between both signatures."
+            )
+
+else:
+    st.info(
+        "Upload or capture both the Original Signature and Questioned Signature to start verification."
+    )
+
 
 st.markdown(
     '<div class="footer">Cyber-Forensic Signature Forgery Detection | Built with Siamese Neural Network</div>',
